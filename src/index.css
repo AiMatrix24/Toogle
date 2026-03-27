@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply font-sans text-gray-800 antialiased; }
+}
+
+@layer components {
+  .btn-primary { @apply bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]; }
+  .btn-accent { @apply bg-accent-500 hover:bg-accent-600 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg; }
+  .btn-samiteon { @apply bg-samiteon-500 hover:bg-samiteon-600 text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg; }
+  .card { @apply bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden transition-all hover:shadow-lg; }
+  .input-field { @apply w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-400 focus:border-transparent outline-none transition-all bg-white; }
+  .badge-available { @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700; }
+  .badge-unavailable { @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700; }
+  .toggle-track { @apply relative w-14 h-7 rounded-full transition-colors duration-300 cursor-pointer; }
+  .toggle-thumb { @apply absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300; }
+}
