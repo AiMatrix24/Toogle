@@ -1,16 +1,20 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import { Menu, X, Search, LayoutDashboard, MessageSquare, FileText, Calculator } from 'lucide-react'
+import { Menu, X, Search, LayoutDashboard, MessageSquare, FileText, Calculator, Map, BarChart3, HelpCircle, User, LogIn } from 'lucide-react'
+import Notifications from './Notifications'
 
 const navLinks = [
   { to: '/', label: 'Find Services', icon: Search },
-  { to: '/dashboard', label: 'Provider Dashboard', icon: LayoutDashboard },
+  { to: '/map', label: 'Map', icon: Map },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
   { to: '/contracts', label: 'Contracts', icon: FileText },
-  { to: '/quote', label: 'Get Quote', icon: Calculator },
+  { to: '/quote', label: 'Quote', icon: Calculator },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/support', label: 'Support', icon: HelpCircle },
 ]
 
-export default function Navbar() {
+export default function Navbar({ user, onLogout }) {
   const [open, setOpen] = useState(false)
   const location = useLocation()
 
@@ -25,26 +29,41 @@ export default function Navbar() {
             <span className="text-xl font-bold text-brand-dark">Toogle</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {navLinks.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   location.pathname === to ? 'bg-brand-50 text-brand-700' : 'text-gray-600 hover:bg-gray-100'
                 }`}>
-                <Icon size={16} />
+                <Icon size={15} />
                 {label}
               </Link>
             ))}
           </div>
 
-          <button onClick={() => setOpen(!open)} className="md:hidden p-2 rounded-lg hover:bg-gray-100">
-            {open ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <Notifications />
+            {user ? (
+              <Link to="/profile" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                  {user.name?.charAt(0) || 'U'}
+                </div>
+                <span className="hidden sm:block text-sm font-medium text-gray-700">{user.name}</span>
+              </Link>
+            ) : (
+              <Link to="/login" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700">
+                <LogIn size={16} /> Sign In
+              </Link>
+            )}
+            <button onClick={() => setOpen(!open)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100">
+              {open ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4">
+        <div className="lg:hidden border-t border-gray-100 bg-white px-4 pb-4">
           {navLinks.map(({ to, label, icon: Icon }) => (
             <Link key={to} to={to} onClick={() => setOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${

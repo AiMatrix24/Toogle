@@ -4,9 +4,8 @@
     {
       "name": "toogle-dev",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--port", "5199"],
-      "port": 5199,
-      "cwd": "C:/Users/rsand/Documents/Claude Desk top/Toogle"
+      "runtimeArgs": ["--prefix", "C:/Users/rsand/Documents/Claude Desk top/Toogle", "vite", "--port", "5199"],
+      "port": 5199
     }
   ]
 }
