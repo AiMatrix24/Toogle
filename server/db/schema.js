@@ -247,6 +247,29 @@ export function createTables(db) {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS saved_searches (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      query TEXT,
+      category TEXT,
+      filters TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS renewal_reminders (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      service_name TEXT NOT NULL,
+      provider_name TEXT,
+      provider_id TEXT,
+      last_service_date TEXT,
+      reminder_date TEXT NOT NULL,
+      frequency_days INTEGER DEFAULT 365,
+      status TEXT DEFAULT 'active' CHECK(status IN ('active','snoozed','completed','cancelled')),
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS notification_preferences (
       user_id TEXT PRIMARY KEY REFERENCES users(id),
       email_notifications INTEGER DEFAULT 1,

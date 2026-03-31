@@ -32,6 +32,8 @@ import ForgotPassword from './pages/ForgotPassword'
 import AdminDashboard from './pages/AdminDashboard'
 import About from './pages/About'
 import Legal from './pages/Legal'
+import Landing from './pages/Landing'
+import Receipt from './pages/Receipt'
 
 export default function App() {
   const { user, logout, loading: authLoading } = useAuth()
@@ -153,6 +155,8 @@ export default function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/about" element={<About />} />
           <Route path="/legal" element={<Legal />} />
+          <Route path="/landing" element={<Landing />} />
+          <Route path="/receipt/:paymentId" element={<Receipt />} />
         </Routes>
       </main>
 

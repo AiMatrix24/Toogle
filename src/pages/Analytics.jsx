@@ -109,6 +109,15 @@ export default function Analytics() {
           <p className="text-gray-500">Platform performance overview</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => {
+            const rows = [['Metric','Value'],['Total Revenue','$' + stats[0]?.value],['Total Bookings',stats[1]?.value],['Active Customers',stats[2]?.value],['Avg Rating',stats[3]?.value]]
+            const csv = rows.map(r => r.join(',')).join('\n')
+            const blob = new Blob([csv], { type: 'text/csv' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a'); a.href = url; a.download = 'toggle-analytics.csv'; a.click()
+          }} className="px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" aria-label="Export analytics as CSV">
+            Export CSV
+          </button>
           {['week', 'month', 'year'].map(p => (
             <button key={p} onClick={() => setPeriod(p)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${

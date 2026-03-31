@@ -56,8 +56,30 @@ export default function ProviderDashboard({ providers, toggleAvailability }) {
     { id: 'blog', label: 'Write Blog' },
     { id: 'portfolio', label: 'Portfolio' },
     { id: 'promotions', label: 'Promotions' },
+    { id: 'reviews', label: 'Reviews' },
     { id: 'services', label: 'My Services' },
   ]
+
+  const [providerReviews, setProviderReviews] = useState([])
+  const [responseText, setResponseText] = useState({})
+
+  useEffect(() => {
+    if (myProvider?.id) {
+      reviewsApi.list(myProvider.id).then(setProviderReviews).catch(() => {})
+    }
+  }, [myProvider?.id])
+
+  const handleRespondToReview = async (reviewId) => {
+    const text = responseText[reviewId]
+    if (!text) return
+    try {
+      await reviewsApi.respond(reviewId, text)
+      setProviderReviews(prev => prev.map(r => r.id === reviewId ? { ...r, providerResponse: text } : r))
+      setResponseText(prev => ({ ...prev, [reviewId]: '' }))
+    } catch (err) {
+      alert('Failed to respond: ' + err.message)
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
@@ -194,6 +216,55 @@ export default function ProviderDashboard({ providers, toggleAvailability }) {
               Save Draft
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Reviews Tab */}
+      {activeTab === 'reviews' && (
+        <div className="space-y-4">
+          <div className="card p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Customer Reviews</h2>
+            <p className="text-sm text-gray-500 mb-4">Respond to reviews to build trust and show customers you care.</p>
+          </div>
+          {providerReviews.length === 0 ? (
+            <div className="card p-8 text-center text-gray-400">No reviews yet</div>
+          ) : providerReviews.map(r => (
+            <div key={r.id} className="card p-5">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">{r.customerName}</p>
+                  <div className="flex gap-0.5 mt-0.5">
+                    {[1,2,3,4,5].map(i => (
+                      <span key={i} className={`text-xs ${i <= r.rating ? 'text-yellow-400' : 'text-gray-300'}`}>&#9733;</span>
+                    ))}
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400">{r.date?.split('T')[0]}</span>
+              </div>
+              <p className="text-sm text-gray-600 mb-3">{r.text}</p>
+
+              {r.providerResponse ? (
+                <div className="bg-brand-50 rounded-xl p-3 border-l-4 border-brand-500">
+                  <p className="text-xs font-medium text-brand-700 mb-1">Your Response</p>
+                  <p className="text-sm text-brand-800">{r.providerResponse}</p>
+                </div>
+              ) : (
+                <div className="pt-3 border-t border-gray-100">
+                  <textarea
+                    value={responseText[r.id] || ''}
+                    onChange={(e) => setResponseText(prev => ({ ...prev, [r.id]: e.target.value }))}
+                    placeholder="Write your response to this review..."
+                    className="input-field text-sm h-16 resize-none mb-2"
+                    aria-label={`Respond to ${r.customerName}'s review`} />
+                  <button onClick={() => handleRespondToReview(r.id)}
+                    disabled={!responseText[r.id]?.trim()}
+                    className="btn-primary text-sm py-2 px-4 disabled:opacity-50">
+                    Post Response
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

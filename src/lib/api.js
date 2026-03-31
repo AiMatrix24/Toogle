@@ -88,6 +88,12 @@ export const notifications = {
 // Search
 export const search = {
   autocomplete: (q) => request(`/search/autocomplete?q=${encodeURIComponent(q)}`),
+  savedList: () => request('/search/saved'),
+  save: (data) => request('/search/saved', { method: 'POST', body: JSON.stringify(data) }),
+  deleteSaved: (id) => request(`/search/saved/${id}`, { method: 'DELETE' }),
+  reminders: () => request('/search/reminders'),
+  createReminder: (data) => request('/search/reminders', { method: 'POST', body: JSON.stringify(data) }),
+  updateReminder: (id, data) => request(`/search/reminders/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 }
 
 // Support

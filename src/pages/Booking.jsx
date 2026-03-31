@@ -34,6 +34,10 @@ export default function Booking({ providers }) {
   const [selectedTime, setSelectedTime] = useState(null)
   const [selectedService, setSelectedService] = useState('')
   const [notes, setNotes] = useState('')
+  const [urgency, setUrgency] = useState('standard')
+  const [propertyType, setPropertyType] = useState('')
+  const [accessNotes, setAccessNotes] = useState('')
+  const [issueDescription, setIssueDescription] = useState('')
   const [delegated, setDelegated] = useState(false)
   const [delegateInfo, setDelegateInfo] = useState({ name: '', phone: '', address: '' })
   const [confirmed, setConfirmed] = useState(false)
@@ -155,12 +159,59 @@ export default function Booking({ providers }) {
         </div>
       </div>
 
-      {/* Notes */}
+      {/* Service Details Intake */}
       <div className="card p-6 mb-4">
-        <h2 className="font-bold text-gray-900 mb-3">4. Additional Notes</h2>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-          placeholder="Describe your issue or any special instructions..."
-          className="input-field h-24 resize-none" />
+        <h2 className="font-bold text-gray-900 mb-3">4. Service Details</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="urgency-select">Urgency Level</label>
+            <select id="urgency-select" value={urgency} onChange={(e) => setUrgency(e.target.value)} className="input-field">
+              <option value="standard">Standard (within a few days)</option>
+              <option value="priority">Priority (same day / next day)</option>
+              <option value="emergency">Emergency (ASAP - within hours)</option>
+            </select>
+            {urgency === 'emergency' && (
+              <p className="text-xs text-red-600 mt-1">Emergency requests may include a 1.5x surge fee</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="property-type">Property Type</label>
+            <select id="property-type" value={propertyType} onChange={(e) => setPropertyType(e.target.value)} className="input-field">
+              <option value="">Select property type</option>
+              <option value="house">Single Family Home</option>
+              <option value="apartment">Apartment / Condo</option>
+              <option value="townhouse">Townhouse</option>
+              <option value="commercial">Commercial / Office</option>
+              <option value="mobile">Mobile Home</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="issue-desc">Describe the Issue</label>
+            <textarea id="issue-desc" value={issueDescription} onChange={(e) => setIssueDescription(e.target.value)}
+              placeholder="What needs to be done? Include details about the problem, size of area, brand/model if applicable..."
+              className="input-field h-24 resize-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Photo of Issue (optional)</label>
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-brand-300 transition-colors cursor-pointer">
+              <p className="text-sm text-gray-500">Tap to upload a photo of the issue</p>
+              <p className="text-xs text-gray-400 mt-1">Helps the provider prepare the right tools and materials</p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="access-notes">Access Notes</label>
+            <input id="access-notes" type="text" value={accessNotes} onChange={(e) => setAccessNotes(e.target.value)}
+              placeholder="Gate code, parking instructions, pet warnings, etc."
+              className="input-field" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="add-notes">Additional Notes</label>
+            <textarea id="add-notes" value={notes} onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any other instructions for the provider..."
+              className="input-field h-16 resize-none" />
+          </div>
+        </div>
       </div>
 
       {/* Delegated Booking */}
