@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { Shield, ExternalLink, CheckCircle, Clock, AlertCircle } from 'lucide-react'
-import { mockContracts } from '../data/mockData'
+import { Shield, ExternalLink, CheckCircle, Clock, AlertCircle, Layers } from 'lucide-react'
+import { payments as paymentsApi } from '../lib/api'
 
 const statusConfig = {
   completed: { icon: CheckCircle, color: 'text-green-600 bg-green-50', label: 'Completed' },
@@ -11,6 +12,23 @@ const statusConfig = {
 
 export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState(null)
+  const [contracts, setContracts] = useState([])
+
+  useEffect(() => {
+    paymentsApi.list().then(data => {
+      setContracts(data.map(p => ({
+        id: p.transaction_id || p.id,
+        provider: p.provider_name || 'Provider',
+        providerId: p.provider_id,
+        customer: p.customer_name || 'Customer',
+        service: 'Service',
+        amount: p.amount,
+        status: p.status === 'completed' ? 'completed' : p.status === 'pending' ? 'pending' : 'in-progress',
+        date: p.created_at?.split('T')[0] || '',
+        blockchainHash: '0x' + (p.transaction_id || '').replace(/\W/g, '').slice(0, 16),
+      })))
+    }).catch(() => {})
+  }, [])
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
@@ -24,7 +42,7 @@ export default function Contracts() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          {mockContracts.map(contract => {
+          {contracts.map(contract => {
             const status = statusConfig[contract.status]
             const StatusIcon = status.icon
             return (
@@ -69,7 +87,7 @@ export default function Contracts() {
                     service: selectedContract.service,
                     amount: selectedContract.amount,
                     hash: selectedContract.blockchainHash,
-                    chain: 'toogle-chain',
+                    chain: 'toggle-chain',
                     timestamp: selectedContract.date
                   })}
                   size={180} level="H" fgColor="#1647b6" />
@@ -79,9 +97,10 @@ export default function Contracts() {
                 <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-medium">${selectedContract.amount}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">Hash</span><span className="font-mono text-xs text-brand-600">{selectedContract.blockchainHash}</span></div>
               </div>
-              <button className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-brand-600 bg-brand-50 rounded-xl hover:bg-brand-100 transition-colors">
-                <ExternalLink size={14} /> View on Blockchain Explorer
-              </button>
+              <Link to={`/blockchain?contract=${selectedContract.id}`}
+                className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-brand-600 rounded-xl hover:bg-brand-700 transition-colors">
+                <Layers size={14} /> View on Blockchain Explorer
+              </Link>
             </div>
           ) : (
             <div className="text-center py-8">

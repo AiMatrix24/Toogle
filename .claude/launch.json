@@ -4,7 +4,7 @@
     {
       "name": "toogle-dev",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["--prefix", "C:/Users/rsand/Documents/Claude Desk top/Toogle", "vite", "--port", "5199"],
+      "runtimeArgs": ["concurrently", "\"npx vite --port 5199 --host\"", "\"node --watch server/index.js\""],
       "port": 5199
     }
   ]

@@ -1,19 +1,61 @@
-import { useState } from 'react'
-import { Eye, Upload, FileText, Mic, Play, Image, PenLine } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Eye, Upload, FileText, Mic, Play, Image, PenLine, DollarSign, Calendar, TrendingUp, ArrowUp, Briefcase, Tag } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import ProviderCalendar from '../components/ProviderCalendar'
+import { useAuth } from '../context/AuthContext'
+import { providers as providersApi, analytics as analyticsApi, deals as dealsApi, bookings as bookingsApi } from '../lib/api'
+import { reviews as reviewsApi } from '../lib/api'
 
 export default function ProviderDashboard({ providers, toggleAvailability }) {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('status')
   const [blogTitle, setBlogTitle] = useState('')
   const [blogContent, setBlogContent] = useState('')
   const [uploadType, setUploadType] = useState('video')
+  const [dashboardData, setDashboardData] = useState(null)
+  const [availabilityWindows, setAvailabilityWindows] = useState([
+    { day: 'Monday', enabled: true, start: '08:00', end: '17:00' },
+    { day: 'Tuesday', enabled: true, start: '08:00', end: '17:00' },
+    { day: 'Wednesday', enabled: true, start: '08:00', end: '17:00' },
+    { day: 'Thursday', enabled: true, start: '08:00', end: '17:00' },
+    { day: 'Friday', enabled: true, start: '08:00', end: '17:00' },
+    { day: 'Saturday', enabled: true, start: '09:00', end: '14:00' },
+    { day: 'Sunday', enabled: false, start: '00:00', end: '00:00' },
+  ])
+  const [autoExpireMinutes, setAutoExpireMinutes] = useState(480)
+  const [leadAppetite, setLeadAppetite] = useState({ minJobValue: 0, maxDistance: 25, urgencyOnly: false })
+  const [earnings, setEarnings] = useState(null)
+  const [myDeals, setMyDeals] = useState([])
+  const [schedule, setSchedule] = useState([])
 
-  const myProvider = providers[0] // Simulating logged-in provider
+  // Find the logged-in provider from the providers list
+  const myProvider = (user?.role === 'provider' && user?.providerId)
+    ? providers.find(p => p.id === user.providerId) || providers[0]
+    : providers[0]
+
+  useEffect(() => {
+    if (user?.role === 'provider') {
+      providersApi.dashboard()
+        .then(data => {
+          setDashboardData(data)
+          setSchedule(data.bookings || [])
+          setMyDeals(data.deals || [])
+        })
+        .catch(() => {})
+      analyticsApi.provider()
+        .then(setEarnings)
+        .catch(() => {})
+    }
+  }, [user])
 
   const tabs = [
     { id: 'status', label: 'Availability' },
+    { id: 'earnings', label: 'Earnings' },
+    { id: 'schedule', label: 'Schedule' },
     { id: 'media', label: 'Upload Media' },
     { id: 'blog', label: 'Write Blog' },
+    { id: 'portfolio', label: 'Portfolio' },
+    { id: 'promotions', label: 'Promotions' },
     { id: 'services', label: 'My Services' },
   ]
 
@@ -188,6 +230,254 @@ export default function ProviderDashboard({ providers, toggleAvailability }) {
                 <p className="text-2xl font-bold mt-1">{value}</p>
               </div>
             ))}
+          </div>
+
+          {/* Scheduled Availability Windows */}
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <h3 className="font-semibold text-gray-800 mb-4">Scheduled Availability Windows</h3>
+            <p className="text-sm text-gray-500 mb-4">Set your recurring weekly availability. Customers can only book during these windows.</p>
+            <div className="space-y-2">
+              {availabilityWindows.map((w, i) => (
+                <div key={w.day} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <div
+                    onClick={() => setAvailabilityWindows(prev => prev.map((win, idx) => idx === i ? { ...win, enabled: !win.enabled } : win))}
+                    className={`toggle-track w-10 h-5 ${w.enabled ? 'bg-accent-500' : 'bg-gray-300'}`}
+                    role="switch" aria-checked={w.enabled} aria-label={`${w.day} availability`} tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && setAvailabilityWindows(prev => prev.map((win, idx) => idx === i ? { ...win, enabled: !win.enabled } : win))}>
+                    <div className={`toggle-thumb w-4 h-4 ${w.enabled ? 'translate-x-4' : ''}`} />
+                  </div>
+                  <span className="w-24 text-sm font-medium text-gray-700">{w.day}</span>
+                  {w.enabled ? (
+                    <div className="flex items-center gap-2">
+                      <input type="time" value={w.start}
+                        onChange={(e) => setAvailabilityWindows(prev => prev.map((win, idx) => idx === i ? { ...win, start: e.target.value } : win))}
+                        className="input-field text-sm py-1 px-2 w-28" aria-label={`${w.day} start time`} />
+                      <span className="text-gray-400">to</span>
+                      <input type="time" value={w.end}
+                        onChange={(e) => setAvailabilityWindows(prev => prev.map((win, idx) => idx === i ? { ...win, end: e.target.value } : win))}
+                        className="input-field text-sm py-1 px-2 w-28" aria-label={`${w.day} end time`} />
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-400 italic">Closed</span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Auto-Expire */}
+            <div className="mt-4 p-4 bg-yellow-50 rounded-xl">
+              <label className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Auto-expire availability</p>
+                  <p className="text-xs text-yellow-600">Automatically go offline after this many minutes of being toggled on</p>
+                </div>
+                <select value={autoExpireMinutes} onChange={(e) => setAutoExpireMinutes(parseInt(e.target.value))}
+                  className="input-field text-sm py-1 px-3 w-32" aria-label="Auto-expire duration">
+                  <option value={120}>2 hours</option>
+                  <option value={240}>4 hours</option>
+                  <option value={480}>8 hours</option>
+                  <option value={720}>12 hours</option>
+                  <option value={0}>Never</option>
+                </select>
+              </label>
+            </div>
+
+            {/* Lead Appetite Controls */}
+            <div className="mt-4 p-4 bg-brand-50 rounded-xl">
+              <h4 className="text-sm font-medium text-brand-800 mb-3">Lead Appetite Controls</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-brand-600 font-medium" htmlFor="min-job">Min Job Value ($)</label>
+                  <input id="min-job" type="number" value={leadAppetite.minJobValue}
+                    onChange={(e) => setLeadAppetite(prev => ({ ...prev, minJobValue: parseInt(e.target.value) || 0 }))}
+                    className="input-field text-sm py-1.5 mt-1" placeholder="0" />
+                </div>
+                <div>
+                  <label className="text-xs text-brand-600 font-medium" htmlFor="max-distance">Max Distance (miles)</label>
+                  <input id="max-distance" type="number" value={leadAppetite.maxDistance}
+                    onChange={(e) => setLeadAppetite(prev => ({ ...prev, maxDistance: parseInt(e.target.value) || 25 }))}
+                    className="input-field text-sm py-1.5 mt-1" placeholder="25" />
+                </div>
+                <div className="flex items-end pb-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={leadAppetite.urgencyOnly}
+                      onChange={(e) => setLeadAppetite(prev => ({ ...prev, urgencyOnly: e.target.checked }))}
+                      className="w-4 h-4 rounded" />
+                    <span className="text-xs text-brand-700 font-medium">Urgent requests only</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <button className="btn-primary mt-4 w-full">Save Availability Settings</button>
+          </div>
+        </div>
+      )}
+
+      {/* Earnings Tab */}
+      {activeTab === 'earnings' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { label: 'This Month', value: `$${(earnings?.monthlyRevenue?.[5] || 0).toLocaleString()}`, icon: DollarSign, color: 'bg-green-50 text-green-700', change: '+12%' },
+              { label: 'Total Jobs', value: earnings?.totalJobs || 0, icon: Briefcase, color: 'bg-blue-50 text-blue-700', change: '+8' },
+              { label: 'Avg Job Value', value: `$${earnings?.avgJobValue || 0}`, icon: TrendingUp, color: 'bg-purple-50 text-purple-700', change: '+$5' },
+              { label: 'Repeat Customers', value: `${earnings?.repeatCustomerRate || 0}%`, icon: ArrowUp, color: 'bg-yellow-50 text-yellow-700', change: '+3%' },
+            ].map(({ label, value, icon: Icon, color, change }) => (
+              <div key={label} className={`card p-5 ${color}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <Icon size={18} className="opacity-60" />
+                  <span className="text-xs font-bold text-green-600">{change}</span>
+                </div>
+                <p className="text-2xl font-bold">{value}</p>
+                <p className="text-xs font-medium opacity-70 mt-1">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="card p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Monthly Revenue</h3>
+            <div className="flex items-end gap-3 h-48">
+              {(earnings?.monthlyRevenue || [3200, 4100, 3800, 4500, 5200, 4800]).map((rev, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-xs font-bold text-gray-600">${(rev/1000).toFixed(1)}k</span>
+                  <div className="w-full bg-brand-500 rounded-t-lg transition-all hover:bg-brand-600"
+                    style={{ height: `${(rev / 6000) * 100}%` }} />
+                  <span className="text-xs text-gray-500">{(earnings?.monthLabels || ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'])[i]}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-4 bg-brand-50 rounded-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-brand-700">Projected Annual Revenue</span>
+                <span className="text-xl font-bold text-brand-800">${Math.round((earnings?.monthlyRevenue || [3200, 4100, 3800, 4500, 5200, 4800]).reduce((a,b)=>a+b,0)/6*12).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Monthly Goal</h3>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">${(earnings?.monthlyRevenue || [3200, 4100, 3800, 4500, 5200, 4800])[5].toLocaleString()} / $5,000</span>
+              <span className="text-sm font-bold text-brand-600">{Math.round((earnings?.monthlyRevenue || [3200, 4100, 3800, 4500, 5200, 4800])[5]/5000*100)}%</span>
+            </div>
+            <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-brand-500 to-accent-500 rounded-full transition-all"
+                style={{ width: `${Math.min((earnings?.monthlyRevenue || [3200, 4100, 3800, 4500, 5200, 4800])[5]/5000*100, 100)}%` }} />
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Payout History</h3>
+            <div className="space-y-3">
+              {(earnings?.payouts || []).map(p => (
+                <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{p.date}</p>
+                    <p className="text-xs text-gray-400">{p.method}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-gray-900">${p.amount}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      p.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                    }`}>{p.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Tab */}
+      {activeTab === 'schedule' && (
+        <ProviderCalendar schedule={schedule} onStatusChange={async (bookingId, status) => {
+          try {
+            await bookingsApi.updateStatus(bookingId, status)
+            // Refresh dashboard data
+            const data = await providersApi.dashboard()
+            setSchedule(data.bookings || [])
+          } catch (err) {
+            alert('Status update failed: ' + err.message)
+          }
+        }} />
+      )}
+
+      {/* Portfolio Tab */}
+      {activeTab === 'portfolio' && (
+        <div className="card p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Work Portfolio</h2>
+          <p className="text-sm text-gray-500 mb-6">Showcase your best work with before/after photos to build trust with potential customers.</p>
+          {myProvider.portfolio && myProvider.portfolio.length > 0 && (
+            <div className="mb-6">
+              {myProvider.portfolio.map(item => (
+                <div key={item.id} className="p-4 bg-gray-50 rounded-xl mb-3">
+                  <h3 className="font-semibold text-gray-900">{item.title}</h3>
+                  <p className="text-sm text-gray-500">{item.description}</p>
+                  <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-lg mt-1 inline-block">{item.service}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
+            <Upload size={32} className="mx-auto text-gray-300 mb-2" />
+            <h3 className="font-semibold text-gray-700 mb-1">Add Before/After Photos</h3>
+            <p className="text-sm text-gray-400">Upload photos of your completed work</p>
+          </div>
+        </div>
+      )}
+
+      {/* Promotions Tab */}
+      {activeTab === 'promotions' && (
+        <div className="space-y-6">
+          <div className="card p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Tag size={18} className="text-accent-500" /> Your Active Promotions
+            </h2>
+            {myDeals.length > 0 ? (
+              <div className="space-y-3">
+                {myDeals.map(deal => (
+                  <div key={deal.id} className="flex items-center justify-between p-4 bg-green-50 rounded-xl">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{deal.title}</h3>
+                      <p className="text-sm text-gray-500">{deal.percentOff}% off &middot; {deal.claimedCount}/{deal.maxClaims} claimed</p>
+                    </div>
+                    <span className="text-lg font-bold text-green-600">${deal.dealPrice}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">No active promotions</p>
+            )}
+          </div>
+
+          <div className="card p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Create New Promotion</h3>
+            <div className="space-y-4">
+              <input type="text" placeholder="Promotion title..." className="input-field" />
+              <textarea placeholder="Describe the deal..." className="input-field h-20 resize-none" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Discount %</label>
+                  <input type="number" placeholder="25" className="input-field" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Max Claims</label>
+                  <input type="number" placeholder="30" className="input-field" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Start Date</label>
+                  <input type="date" className="input-field" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">End Date</label>
+                  <input type="date" className="input-field" />
+                </div>
+              </div>
+              <button className="btn-primary">Create Promotion</button>
+            </div>
           </div>
         </div>
       )}

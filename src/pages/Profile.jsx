@@ -1,32 +1,83 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { User, Mail, Phone, MapPin, Star, Calendar, DollarSign, Clock, Settings, LogOut, Edit3, Shield } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
-import { mockContracts } from '../data/mockData'
+import { payments as paymentsApi, bookings as bookingsApi, notifications as notificationsApi } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
+import { users as usersApi } from '../lib/api'
 
-export default function Profile({ user, onLogout }) {
+export default function Profile() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('history')
+  const [profileData, setProfileData] = useState(null)
+
+  const [paymentHistory, setPaymentHistory] = useState([])
+  const [notifPrefs, setNotifPrefs] = useState({ email: true, sms: true, push: true, marketing: false })
+  const [serviceHistory, setServiceHistory] = useState([])
+
+  const loadBookings = () => {
+    bookingsApi.list().then(data => {
+      setServiceHistory(data.map(b => ({
+        id: b.id,
+        service: b.service,
+        provider: b.provider,
+        providerId: b.providerId,
+        date: b.date,
+        amount: b.amount || 0,
+        status: b.status,
+        rating: b.status === 'completed' ? 5 : null,
+      })))
+    }).catch(() => {})
+  }
+
+  useEffect(() => {
+    if (user) {
+      usersApi.profile().then(setProfileData).catch(() => {})
+      loadBookings()
+      notificationsApi.getPreferences().then(setNotifPrefs).catch(() => {})
+      paymentsApi.list().then(data => {
+        setPaymentHistory(data.map(p => ({
+          id: p.transaction_id || p.id,
+          provider: p.provider_name || 'Provider',
+          service: 'Service',
+          amount: p.amount,
+          date: p.created_at?.split('T')[0] || '',
+          status: p.status,
+        })))
+      }).catch(() => {})
+    }
+  }, [user])
+
+  const handleCancelBooking = async (bookingId) => {
+    if (!confirm('Are you sure you want to cancel this booking?')) return
+    try {
+      await bookingsApi.updateStatus(bookingId, 'cancelled')
+      loadBookings()
+    } catch (err) {
+      alert('Cancel failed: ' + err.message)
+    }
+  }
+
+  const onLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
 
   const mockUser = {
-    name: user?.name || 'John Doe',
-    email: user?.email || 'john@email.com',
-    phone: '(555) 123-4567',
-    address: '456 Oak Ave, Los Angeles, CA 90012',
-    memberSince: 'January 2026',
-    totalBookings: 12,
-    totalSpent: 1845,
-    savedProviders: 5,
+    name: profileData?.name || user?.name || 'John Doe',
+    email: profileData?.email || user?.email || 'john@email.com',
+    phone: profileData?.phone || '(555) 123-4567',
+    address: profileData?.address ? `${profileData.address}, ${profileData.city || ''}, ${profileData.state || ''} ${profileData.zip || ''}` : '456 Oak Ave, Los Angeles, CA 90012',
+    memberSince: profileData?.memberSince || 'January 2026',
+    totalBookings: profileData?.totalBookings || 12,
+    totalSpent: profileData?.totalSpent || 1845,
+    savedProviders: profileData?.savedProviders || 5,
     samiteonConnected: true,
     samiteonLast4: '8842'
   }
 
-  const serviceHistory = [
-    { id: 1, service: 'Leak Repair', provider: "Mike's Plumbing Pro", date: '2026-03-20', amount: 120, status: 'completed', rating: 5 },
-    { id: 2, service: 'Deep Cleaning', provider: 'Pristine Clean Co.', date: '2026-03-14', amount: 165, status: 'completed', rating: 5 },
-    { id: 3, service: 'Outlet Installation', provider: 'Spark Electric Solutions', date: '2026-03-25', amount: 190, status: 'in-progress', rating: null },
-    { id: 4, service: 'Lawn Care', provider: 'GreenScape Landscaping', date: '2026-03-10', amount: 130, status: 'completed', rating: 4 },
-    { id: 5, service: 'AC Repair', provider: 'CoolBreeze HVAC', date: '2026-02-28', amount: 220, status: 'completed', rating: 5 },
-  ]
+  // serviceHistory loaded from API via loadBookings()
 
   const tabs = [
     { id: 'history', label: 'Service History' },
@@ -92,11 +143,22 @@ export default function Profile({ user, onLogout }) {
                   <h3 className="font-semibold text-gray-900">{s.service}</h3>
                   <p className="text-sm text-gray-500">{s.provider}</p>
                 </div>
-                <span className={`text-sm font-medium px-3 py-1 rounded-full ${
-                  s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                }`}>
-                  {s.status === 'completed' ? 'Completed' : 'In Progress'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                    s.status === 'completed' ? 'bg-green-100 text-green-700'
+                    : s.status === 'cancelled' ? 'bg-red-100 text-red-700'
+                    : s.status === 'pending' ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
+                  </span>
+                  {(s.status === 'pending' || s.status === 'confirmed') && (
+                    <button onClick={() => handleCancelBooking(s.id)}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium">
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-4 text-gray-500">
@@ -145,7 +207,7 @@ export default function Profile({ user, onLogout }) {
           <div className="card p-6">
             <h3 className="font-bold text-gray-900 mb-4">Payment History</h3>
             <div className="space-y-3">
-              {mockContracts.map(c => (
+              {paymentHistory.map(c => (
                 <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="font-medium text-sm">{c.service}</p>
@@ -187,11 +249,21 @@ export default function Profile({ user, onLogout }) {
 
           <div className="card p-6">
             <h3 className="font-bold text-gray-900 mb-4">Notification Preferences</h3>
-            {['Email notifications', 'SMS notifications', 'Push notifications', 'Marketing emails'].map(pref => (
-              <label key={pref} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0 cursor-pointer">
-                <span className="text-sm text-gray-700">{pref}</span>
-                <div className="toggle-track w-12 h-6 bg-accent-500">
-                  <div className="toggle-thumb w-5 h-5 translate-x-5" />
+            {[
+              { key: 'email', label: 'Email notifications' },
+              { key: 'sms', label: 'SMS notifications' },
+              { key: 'push', label: 'Push notifications' },
+              { key: 'marketing', label: 'Marketing emails' },
+            ].map(pref => (
+              <label key={pref.key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0 cursor-pointer">
+                <span className="text-sm text-gray-700">{pref.label}</span>
+                <div onClick={() => {
+                  const updated = { ...notifPrefs, [pref.key]: !notifPrefs[pref.key] }
+                  setNotifPrefs(updated)
+                  notificationsApi.updatePreferences(updated).catch(() => {})
+                }}
+                  className={`toggle-track w-12 h-6 ${notifPrefs[pref.key] ? 'bg-accent-500' : 'bg-gray-300'}`}>
+                  <div className={`toggle-thumb w-5 h-5 ${notifPrefs[pref.key] ? 'translate-x-5' : ''}`} />
                 </div>
               </label>
             ))}

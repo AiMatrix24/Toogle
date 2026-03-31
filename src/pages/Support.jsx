@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { HelpCircle, MessageSquare, FileText, AlertTriangle, ChevronDown, ChevronRight, Phone, Mail, Shield } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { HelpCircle, MessageSquare, FileText, AlertTriangle, ChevronDown, ChevronRight, Phone, Mail, Shield, Clock, CheckCircle } from 'lucide-react'
+import { support as supportApi } from '../lib/api'
 
 const faqs = [
   { q: 'How does the availability toggle work?', a: 'Service providers can toggle their availability status on or off from their dashboard. When toggled on, customers can see them as "Available Now" and book services immediately.' },
@@ -14,11 +15,37 @@ export default function Support() {
   const [activeTab, setActiveTab] = useState('faq')
   const [openFaq, setOpenFaq] = useState(null)
   const [disputeSubmitted, setDisputeSubmitted] = useState(false)
+  const [disputeRef, setDisputeRef] = useState('')
   const [disputeForm, setDisputeForm] = useState({ contractId: '', type: '', description: '' })
+  const [tickets, setTickets] = useState([])
+
+  useEffect(() => {
+    supportApi.list().then(setTickets).catch(() => {})
+  }, [])
+
+  const handleDisputeSubmit = async () => {
+    try {
+      const result = await supportApi.create({
+        subject: `Dispute: ${disputeForm.type || 'General'}`,
+        type: 'dispute',
+        description: disputeForm.description,
+        referenceId: disputeForm.contractId,
+      })
+      setDisputeRef(result.referenceNumber)
+      setDisputeSubmitted(true)
+      supportApi.list().then(setTickets).catch(() => {})
+    } catch (err) {
+      alert('Failed to submit: ' + err.message)
+    }
+  }
+
+  const statusIcons = { open: Clock, 'in-progress': Clock, resolved: CheckCircle, closed: CheckCircle }
+  const statusColors = { open: 'text-red-600 bg-red-50', 'in-progress': 'text-blue-600 bg-blue-50', resolved: 'text-green-600 bg-green-50', closed: 'text-gray-600 bg-gray-50' }
 
   const tabs = [
     { id: 'faq', label: 'FAQs', icon: HelpCircle },
     { id: 'dispute', label: 'File Dispute', icon: AlertTriangle },
+    { id: 'tickets', label: 'My Tickets', icon: FileText },
     { id: 'contact', label: 'Contact Us', icon: MessageSquare },
   ]
 
@@ -71,7 +98,7 @@ export default function Support() {
               <Shield size={48} className="mx-auto text-brand-500 mb-4" />
               <h2 className="text-xl font-bold text-gray-900 mb-2">Dispute Submitted</h2>
               <p className="text-gray-500 mb-4">Our team will review your case within 48 hours. You'll receive updates via email and notifications.</p>
-              <p className="text-sm text-gray-400">Reference: DSP-{Date.now().toString().slice(-6)}</p>
+              <p className="text-sm text-gray-400">Reference: {disputeRef || 'Processing...'}</p>
             </div>
           ) : (
             <>
@@ -115,13 +142,47 @@ export default function Support() {
                     <p className="text-xs text-gray-400">Max 10MB per file</p>
                   </div>
                 </div>
-                <button onClick={() => setDisputeSubmitted(true)}
+                <button onClick={handleDisputeSubmit}
                   className="btn-primary w-full">
                   Submit Dispute
                 </button>
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* My Tickets */}
+      {activeTab === 'tickets' && (
+        <div className="space-y-3">
+          {tickets.length === 0 ? (
+            <div className="card p-8 text-center text-gray-400">
+              <FileText size={32} className="mx-auto mb-2 opacity-50" />
+              <p>No support tickets yet</p>
+            </div>
+          ) : tickets.map(t => {
+            const StatusIcon = statusIcons[t.status] || Clock
+            return (
+              <div key={t.id} className="card p-5">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{t.subject}</h3>
+                    <p className="text-xs text-gray-400">{t.referenceNumber} &middot; {t.createdAt?.split('T')[0]}</p>
+                  </div>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1 ${statusColors[t.status] || statusColors.open}`}>
+                    <StatusIcon size={12} />
+                    {t.status.charAt(0).toUpperCase() + t.status.slice(1)}
+                  </span>
+                </div>
+                {t.description && <p className="text-sm text-gray-600">{t.description}</p>}
+                {t.adminNotes && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-700">
+                    <strong>Admin response:</strong> {t.adminNotes}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -151,8 +212,8 @@ export default function Support() {
               <h3 className="font-bold text-gray-900 mb-4">Other Ways to Reach Us</h3>
               <div className="space-y-4">
                 {[
-                  { icon: Phone, label: 'Phone Support', value: '1-800-TOOGLE', desc: 'Mon-Fri 8AM-8PM EST' },
-                  { icon: Mail, label: 'Email', value: 'support@toogle.com', desc: 'Response within 24 hours' },
+                  { icon: Phone, label: 'Phone Support', value: '1-800-TOGGLE', desc: 'Mon-Fri 8AM-8PM EST' },
+                  { icon: Mail, label: 'Email', value: 'support@toggle.com', desc: 'Response within 24 hours' },
                   { icon: MessageSquare, label: 'Live Chat', value: 'Available Now', desc: 'Average wait: 2 min' },
                 ].map(c => {
                   const Icon = c.icon
@@ -176,7 +237,7 @@ export default function Support() {
               <p className="text-sm text-brand-700 mb-3">
                 If you have an urgent safety concern or active service emergency, call our priority line immediately.
               </p>
-              <a href="tel:1-800-911-TOOGLE" className="btn-primary w-full text-center block">
+              <a href="tel:1-800-911-TOGGLE" className="btn-primary w-full text-center block">
                 <Phone size={16} className="inline mr-2" /> Call Priority Line
               </a>
             </div>

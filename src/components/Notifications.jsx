@@ -1,29 +1,56 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, CheckCircle, Calendar, MessageSquare, Star, DollarSign, X } from 'lucide-react'
+import { Bell, CheckCircle, Calendar, MessageSquare, Star, DollarSign, X, AlertCircle } from 'lucide-react'
+import { notifications as notificationsApi } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 
-const mockNotifications = [
-  { id: 1, type: 'booking', icon: Calendar, title: 'Booking Confirmed', message: 'Your appointment with Mike\'s Plumbing Pro is confirmed for tomorrow at 2 PM', time: '5 min ago', read: false },
-  { id: 2, type: 'message', icon: MessageSquare, title: 'New Message', message: 'Spark Electric Solutions replied to your inquiry', time: '15 min ago', read: false },
-  { id: 3, type: 'payment', icon: DollarSign, title: 'Payment Processed', message: 'Your Samiteon payment of $120 was successful', time: '1 hr ago', read: false },
-  { id: 4, type: 'review', icon: Star, title: 'Review Reminder', message: 'How was your service with Pristine Clean Co.? Leave a review!', time: '3 hrs ago', read: true },
-  { id: 5, type: 'status', icon: CheckCircle, title: 'Service Complete', message: 'Mike\'s Plumbing Pro marked your leak repair as complete', time: '1 day ago', read: true },
-]
+const typeConfig = {
+  booking: { icon: Calendar, color: 'bg-blue-100 text-blue-600' },
+  message: { icon: MessageSquare, color: 'bg-purple-100 text-purple-600' },
+  payment: { icon: DollarSign, color: 'bg-green-100 text-green-600' },
+  review: { icon: Star, color: 'bg-yellow-100 text-yellow-600' },
+  status: { icon: CheckCircle, color: 'bg-brand-100 text-brand-600' },
+  system: { icon: AlertCircle, color: 'bg-gray-100 text-gray-600' },
+}
 
-const typeColors = {
-  booking: 'bg-blue-100 text-blue-600',
-  message: 'bg-purple-100 text-purple-600',
-  payment: 'bg-green-100 text-green-600',
-  review: 'bg-yellow-100 text-yellow-600',
-  status: 'bg-brand-100 text-brand-600',
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const now = new Date()
+  const date = new Date(dateStr)
+  const seconds = Math.floor((now - date) / 1000)
+  if (seconds < 60) return 'Just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hr${hours > 1 ? 's' : ''} ago`
+  const days = Math.floor(hours / 24)
+  return `${days} day${days > 1 ? 's' : ''} ago`
 }
 
 export default function Notifications() {
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const [items, setItems] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const ref = useRef(null)
 
-  const unreadCount = notifications.filter(n => !n.read).length
+  // Fetch notifications
+  const fetchNotifications = () => {
+    if (!user) return
+    notificationsApi.list()
+      .then(data => {
+        setItems(data)
+        setUnreadCount(data.filter(n => !n.read).length)
+      })
+      .catch(() => {})
+  }
 
+  useEffect(() => {
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 30000) // Poll every 30s
+    return () => clearInterval(interval)
+  }, [user])
+
+  // Close on outside click
   useEffect(() => {
     const handleClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
@@ -32,8 +59,19 @@ export default function Notifications() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-  const dismiss = (id) => setNotifications(prev => prev.filter(n => n.id !== id))
+  const markAllRead = () => {
+    notificationsApi.markAllRead().then(() => {
+      setItems(prev => prev.map(n => ({ ...n, read: 1 })))
+      setUnreadCount(0)
+    }).catch(() => {})
+  }
+
+  const dismiss = (id) => {
+    notificationsApi.markRead(id).then(() => {
+      setItems(prev => prev.filter(n => n.id !== id))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    }).catch(() => {})
+  }
 
   return (
     <div className="relative" ref={ref}>
@@ -59,20 +97,21 @@ export default function Notifications() {
           </div>
 
           <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {items.length === 0 ? (
               <div className="p-8 text-center text-gray-400">
                 <Bell size={32} className="mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No notifications</p>
               </div>
             ) : (
-              notifications.map(n => {
-                const Icon = n.icon
+              items.map(n => {
+                const config = typeConfig[n.type] || typeConfig.system
+                const Icon = config.icon
                 return (
                   <div key={n.id}
                     className={`flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 ${
                       !n.read ? 'bg-blue-50/30' : ''
                     }`}>
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${typeColors[n.type]}`}>
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${config.color}`}>
                       <Icon size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -81,7 +120,7 @@ export default function Notifications() {
                         {!n.read && <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />}
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
-                      <span className="text-xs text-gray-400 mt-1 block">{n.time}</span>
+                      <span className="text-xs text-gray-400 mt-1 block">{timeAgo(n.created_at)}</span>
                     </div>
                     <button onClick={() => dismiss(n.id)}
                       className="p-1 rounded hover:bg-gray-200 shrink-0">

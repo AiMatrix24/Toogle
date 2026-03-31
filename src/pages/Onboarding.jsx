@@ -25,7 +25,7 @@ export default function Onboarding() {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={40} className="text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Toogle!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Toggle!</h2>
           <p className="text-gray-500 mb-6">Your provider account is set up. Your profile is under review and will be live within 24 hours.</p>
           <div className="bg-gray-50 rounded-2xl p-5 text-left mb-6">
             <h3 className="font-semibold mb-3">Next Steps:</h3>

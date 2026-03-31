@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Calendar, Clock, MapPin, DollarSign, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { bookings as bookingsApi } from '../lib/api'
 
 const timeSlots = [
   '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
@@ -28,18 +29,38 @@ function generateDays() {
 export default function Booking({ providers }) {
   const { providerId } = useParams()
   const navigate = useNavigate()
-  const provider = providers?.find(p => p.id === parseInt(providerId)) || providers?.[0]
+  const provider = providers?.find(p => p.id === providerId) || providers?.find(p => p.id === parseInt(providerId)) || providers?.[0]
   const [selectedDate, setSelectedDate] = useState(null)
   const [selectedTime, setSelectedTime] = useState(null)
   const [selectedService, setSelectedService] = useState('')
   const [notes, setNotes] = useState('')
+  const [delegated, setDelegated] = useState(false)
+  const [delegateInfo, setDelegateInfo] = useState({ name: '', phone: '', address: '' })
   const [confirmed, setConfirmed] = useState(false)
+  const [bookingId, setBookingId] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
   const [days] = useState(generateDays)
 
   if (!provider) return null
 
-  const handleConfirm = () => {
-    setConfirmed(true)
+  const handleConfirm = async () => {
+    setSubmitting(true)
+    try {
+      const result = await bookingsApi.create({
+        providerId: provider.id,
+        serviceName: selectedService,
+        date: selectedDate,
+        startTime: selectedTime,
+        notes,
+        totalAmount: provider.hourlyRate,
+      })
+      setBookingId(result.id)
+      setConfirmed(true)
+    } catch (err) {
+      alert('Booking failed: ' + (err.message || 'Please try again'))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (confirmed) {
@@ -135,22 +156,47 @@ export default function Booking({ providers }) {
       </div>
 
       {/* Notes */}
-      <div className="card p-6 mb-6">
+      <div className="card p-6 mb-4">
         <h2 className="font-bold text-gray-900 mb-3">4. Additional Notes</h2>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
           placeholder="Describe your issue or any special instructions..."
           className="input-field h-24 resize-none" />
       </div>
 
+      {/* Delegated Booking */}
+      <div className="card p-6 mb-6">
+        <label className="flex items-center gap-3 cursor-pointer mb-3">
+          <input type="checkbox" checked={delegated} onChange={(e) => setDelegated(e.target.checked)}
+            className="w-4 h-4 rounded text-brand-600" aria-label="Book for someone else" />
+          <div>
+            <span className="font-bold text-gray-900 text-sm">Book for someone else</span>
+            <p className="text-xs text-gray-500">Booking on behalf of a family member, tenant, or client</p>
+          </div>
+        </label>
+        {delegated && (
+          <div className="space-y-3 pt-3 border-t border-gray-100">
+            <input type="text" value={delegateInfo.name}
+              onChange={(e) => setDelegateInfo(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Recipient's name" className="input-field text-sm" aria-label="Recipient name" />
+            <input type="tel" value={delegateInfo.phone}
+              onChange={(e) => setDelegateInfo(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="Recipient's phone number" className="input-field text-sm" aria-label="Recipient phone" />
+            <input type="text" value={delegateInfo.address}
+              onChange={(e) => setDelegateInfo(prev => ({ ...prev, address: e.target.value }))}
+              placeholder="Service address (if different)" className="input-field text-sm" aria-label="Service address" />
+          </div>
+        )}
+      </div>
+
       {/* Confirm */}
       <button onClick={handleConfirm}
-        disabled={!selectedService || !selectedDate || !selectedTime}
+        disabled={!selectedService || !selectedDate || !selectedTime || submitting}
         className={`w-full py-4 rounded-xl font-semibold text-lg transition-all flex items-center justify-center gap-2 ${
-          selectedService && selectedDate && selectedTime
+          selectedService && selectedDate && selectedTime && !submitting
             ? 'bg-brand-600 text-white hover:bg-brand-700 shadow-lg'
             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
         }`}>
-        <Calendar size={20} /> Confirm Booking
+        <Calendar size={20} /> {submitting ? 'Booking...' : 'Confirm Booking'}
       </button>
     </div>
   )

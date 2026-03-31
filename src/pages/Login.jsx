@@ -1,18 +1,30 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [role, setRole] = useState('customer')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onLogin({ email, role, name: email.split('@')[0] })
-    navigate(role === 'provider' ? '/dashboard' : '/')
+    setError('')
+    setLoading(true)
+    try {
+      const user = await login(email, password)
+      navigate(user.role === 'provider' ? '/dashboard' : '/')
+    } catch (err) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -22,7 +34,7 @@ export default function Login({ onLogin }) {
           <div className="w-14 h-14 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-2xl">T</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back to Toogle</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome back to Toggle</h1>
           <p className="text-gray-500 mt-1">Sign in to your account</p>
         </div>
 
@@ -37,6 +49,12 @@ export default function Login({ onLogin }) {
               </button>
             ))}
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -67,13 +85,18 @@ export default function Login({ onLogin }) {
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-brand-600" />
                 <span className="text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-brand-600 hover:text-brand-700 font-medium">Forgot password?</a>
+              <Link to="/forgot-password" className="text-brand-600 hover:text-brand-700 font-medium">Forgot password?</Link>
             </div>
 
-            <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2">
-              <LogIn size={18} /> Sign In
+            <button type="submit" disabled={loading}
+              className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
+              <LogIn size={18} /> {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          <div className="mt-4 text-xs text-gray-400 text-center">
+            Demo: john@email.com / password123
+          </div>
 
           <div className="mt-6 pt-6 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-500">

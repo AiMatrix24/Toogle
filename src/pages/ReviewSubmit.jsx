@@ -22,7 +22,7 @@ export default function ReviewSubmit() {
         <div className="card p-8">
           <CheckCircle size={56} className="mx-auto text-accent-500 mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Review Submitted!</h2>
-          <p className="text-gray-500 mb-6">Thank you for helping the Toogle community</p>
+          <p className="text-gray-500 mb-6">Thank you for helping the Toggle community</p>
           <button onClick={() => navigate('/')} className="btn-primary">Back to Home</button>
         </div>
       </div>

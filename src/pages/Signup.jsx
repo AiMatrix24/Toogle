@@ -1,13 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, User, Phone, MapPin, Briefcase, Eye, EyeOff, UserPlus } from 'lucide-react'
-import { serviceCategories } from '../data/mockData'
+import { serviceCategories } from '../data/constants'
+import { useAuth } from '../context/AuthContext'
 
-export default function Signup({ onLogin }) {
+export default function Signup() {
   const [role, setRole] = useState('customer')
   const [showPass, setShowPass] = useState(false)
   const [step, setStep] = useState(1)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { signup } = useAuth()
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', confirmPassword: '',
     address: '', city: '', state: '', zip: '',
@@ -17,10 +21,22 @@ export default function Signup({ onLogin }) {
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onLogin({ email: form.email, role, name: form.name || form.businessName })
-    navigate(role === 'provider' ? '/onboarding' : '/')
+    setError('')
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    setLoading(true)
+    try {
+      await signup({ ...form, role })
+      navigate(role === 'provider' ? '/onboarding' : '/')
+    } catch (err) {
+      setError(err.message || 'Signup failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -30,7 +46,7 @@ export default function Signup({ onLogin }) {
           <div className="w-14 h-14 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-2xl">T</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Join Toogle</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Join Toggle</h1>
           <p className="text-gray-500 mt-1">Create your account to get started</p>
         </div>
 
@@ -58,6 +74,10 @@ export default function Signup({ onLogin }) {
                 </div>
               ))}
             </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -173,7 +193,7 @@ export default function Signup({ onLogin }) {
                     onChange={(e) => update('agreeTerms', e.target.checked)}
                     required className="w-4 h-4 mt-0.5 rounded" />
                   <span className="text-sm text-gray-600">
-                    I agree to the Toogle Terms of Service, Privacy Policy, and Service Provider Agreement.
+                    I agree to the Toggle Terms of Service, Privacy Policy, and Service Provider Agreement.
                     I confirm that all information provided is accurate.
                   </span>
                 </label>
@@ -188,8 +208,8 @@ export default function Signup({ onLogin }) {
                 </button>
               )}
               {(role === 'customer' || step === 3) ? (
-                <button type="submit" className="btn-primary flex-1 flex items-center justify-center gap-2">
-                  <UserPlus size={18} /> Create Account
+                <button type="submit" disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50">
+                  <UserPlus size={18} /> {loading ? 'Creating...' : 'Create Account'}
                 </button>
               ) : (
                 <button type="button" onClick={() => setStep(step + 1)}

@@ -1,6 +1,1 @@
-node_modules
-dist
-.env
-.env.local
-*.log
-.DS_Store
+node_modules/\nserver/db/*.db\n.DS_Store\ndist/
