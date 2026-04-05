@@ -290,6 +290,63 @@ const seedAll = db.transaction(() => {
     insertPayout.run(uuid(), providerIds[1], p.amount, p.status, 'samiteon', p.date, p.status === 'paid' ? p.date : null)
   })
 
+  // === MODULE 29: QADE Seed Data ===
+
+  // Seed carrier partnerships
+  const carrierIds = {}
+  const carriers = [
+    { name: 'Blue Cross Blue Shield', code: 'BCBS', states: ['AL','CA','FL','NY','TX'], types: ['health','medicare'] },
+    { name: 'UnitedHealthcare', code: 'UHC', states: ['CA','FL','NY','TX','IL'], types: ['health','medicare','life'] },
+    { name: 'Aetna', code: 'AETNA', states: ['CA','NY','FL','TX'], types: ['health'] },
+  ]
+  carriers.forEach(c => {
+    const cId = uuid()
+    carrierIds[c.code] = cId
+    db.prepare('INSERT INTO carrier_partnerships (id, carrier_name, carrier_code, states_active, insurance_types) VALUES (?, ?, ?, ?, ?)').run(
+      cId, c.name, c.code, JSON.stringify(c.states), JSON.stringify(c.types)
+    )
+  })
+
+  // Seed provider licensing (first 2 providers get insurance licenses)
+  const licensingData = [
+    { pid: 1, state: 'CA', license: 'CA-INS-2024-001', npn: '12345678', loa: ['health','medicare','life'] },
+    { pid: 1, state: 'FL', license: 'FL-INS-2024-002', npn: '12345678', loa: ['health','medicare'] },
+    { pid: 2, state: 'CA', license: 'CA-INS-2024-003', npn: '87654321', loa: ['health','life','auto'] },
+    { pid: 2, state: 'NY', license: 'NY-INS-2024-004', npn: '87654321', loa: ['health','life'] },
+  ]
+  const now = new Date().toISOString()
+  licensingData.forEach(l => {
+    db.prepare('INSERT INTO provider_licensing (id, provider_id, state_code, license_number, npn, lines_of_authority, license_status, verified, verified_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)').run(
+      uuid(), providerIds[l.pid], l.state, l.license, l.npn, JSON.stringify(l.loa), 'active', now
+    )
+  })
+
+  // Seed appointment capacity
+  Object.entries(providerIds).forEach(([, pid]) => {
+    db.prepare('INSERT INTO appointment_capacity (id, provider_id) VALUES (?, ?)').run(uuid(), pid)
+  })
+
+  // Seed sample leads
+  const sampleLeads = [
+    { fn: 'Sarah', ln: 'Johnson', email: 'sarah.j@email.com', phone: '5551234567', zip: '90012', state: 'CA', type: 'health', score: 85 },
+    { fn: 'Michael', ln: 'Chen', email: 'mchen@email.com', phone: '5559876543', zip: '10001', state: 'NY', type: 'medicare', score: 92 },
+    { fn: 'Lisa', ln: 'Rodriguez', email: 'lisa.r@email.com', phone: '5554567890', zip: '33101', state: 'FL', type: 'life', score: 45 },
+  ]
+  sampleLeads.forEach(l => {
+    const leadId = uuid()
+    const apptId = uuid()
+    db.prepare(`INSERT INTO qade_leads (id, first_name, last_name, email, phone, zip_code, state, insurance_type, tcpa_consent, tcpa_consent_timestamp, qualification_score, qualification_stage)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`).run(
+      leadId, l.fn, l.ln, l.email, l.phone, l.zip, l.state, l.type, now, l.score, l.score >= 60 ? 'final' : 'pending'
+    )
+    db.prepare('INSERT INTO qade_appointments (id, lead_id, status) VALUES (?, ?, ?)').run(
+      apptId, leadId, l.score >= 60 ? 'QUALIFIED' : 'SUBMITTED'
+    )
+    db.prepare('INSERT INTO compliance_events (id, event_type, entity_type, entity_id, detail, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
+      uuid(), 'consent_captured', 'lead', leadId, JSON.stringify({ type: 'tcpa', score: l.score }), now
+    )
+  })
+
   // Store provider ID mapping for reference
   console.log('Provider ID mapping:')
   Object.entries(providerIds).forEach(([oldId, newId]) => {

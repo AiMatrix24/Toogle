@@ -23,6 +23,9 @@ import analyticsRoutes from './routes/analytics.js'
 import searchRoutes from './routes/search.js'
 import supportRoutes from './routes/support.js'
 import adminRoutes from './routes/admin.js'
+import appointmentRoutes from './routes/appointments.js'
+import providerConfigRoutes from './routes/provider-config.js'
+import complianceRoutes from './routes/compliance.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -58,6 +61,9 @@ app.use('/api/analytics', analyticsRoutes(db))
 app.use('/api/search', searchRoutes(db))
 app.use('/api/support', supportRoutes(db))
 app.use('/api/admin', adminRoutes(db))
+app.use('/api/appointments', appointmentRoutes(db))
+app.use('/api/provider-config', providerConfigRoutes(db))
+app.use('/api/compliance', complianceRoutes(db))
 
 // Health check
 app.get('/api/health', (req, res) => {

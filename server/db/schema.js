@@ -310,5 +310,159 @@ export function createTables(db) {
       created_at TEXT DEFAULT (datetime('now')),
       paid_at TEXT
     );
+
+    -- MODULE 29: Qualified Appointment Distribution Engine (QADE)
+
+    CREATE TABLE IF NOT EXISTS qade_leads (
+      id TEXT PRIMARY KEY,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      zip_code TEXT NOT NULL,
+      state TEXT NOT NULL,
+      insurance_type TEXT NOT NULL CHECK(insurance_type IN ('health','medicare','life','auto','home','commercial')),
+      intent_description TEXT,
+      source TEXT DEFAULT 'web_form' CHECK(source IN ('web_form','partner_api','referral','ivr','sms')),
+      source_detail TEXT,
+      tcpa_consent INTEGER DEFAULT 0,
+      tcpa_consent_timestamp TEXT,
+      tcpa_consent_ip TEXT,
+      tcpa_consent_language TEXT,
+      trusted_form_cert_url TEXT,
+      dnc_checked INTEGER DEFAULT 0,
+      dnc_clean INTEGER DEFAULT 1,
+      duplicate_of_lead_id TEXT REFERENCES qade_leads(id),
+      qualification_score INTEGER DEFAULT 0,
+      qualification_stage TEXT DEFAULT 'pending' CHECK(qualification_stage IN ('pending','basic','enhanced','final','disqualified')),
+      nurture_stage TEXT,
+      suppressed_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS qade_appointments (
+      id TEXT PRIMARY KEY,
+      lead_id TEXT NOT NULL REFERENCES qade_leads(id),
+      provider_id TEXT REFERENCES providers(id),
+      consumer_user_id TEXT REFERENCES users(id),
+      referred_by_provider_id TEXT REFERENCES providers(id),
+      status TEXT DEFAULT 'SUBMITTED' CHECK(status IN ('SUBMITTED','QUALIFYING','QUALIFIED','MATCHING','OFFERED','ACCEPTED','SCHEDULING','CONFIRMED','IN_PROGRESS','COMPLETED','NO_SHOW','CANCELLED')),
+      tier_offered INTEGER DEFAULT 0,
+      offered_at TEXT,
+      accepted_at TEXT,
+      scheduled_date TEXT,
+      scheduled_start TEXT,
+      scheduled_end TEXT,
+      appointment_type TEXT DEFAULT 'phone' CHECK(appointment_type IN ('phone','video','in_person')),
+      actual_start TEXT,
+      actual_end TEXT,
+      actual_duration_minutes INTEGER,
+      outcome TEXT CHECK(outcome IN ('closed_sale','no_sale','follow_up','no_show')),
+      outcome_notes TEXT,
+      policy_type TEXT,
+      estimated_premium REAL,
+      consumer_satisfaction INTEGER CHECK(consumer_satisfaction BETWEEN 1 AND 5),
+      satisfaction_feedback TEXT,
+      provider_lead_quality INTEGER CHECK(provider_lead_quality BETWEEN 1 AND 5),
+      provider_lead_quality_notes TEXT,
+      appointment_fee REAL DEFAULT 0,
+      fee_status TEXT DEFAULT 'pending' CHECK(fee_status IN ('pending','charged','refunded','waived','credited')),
+      cancellation_reason TEXT,
+      cancelled_by TEXT CHECK(cancelled_by IN ('consumer','provider','system')),
+      reschedule_count INTEGER DEFAULT 0,
+      cascade_depth INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS provider_licensing (
+      id TEXT PRIMARY KEY,
+      provider_id TEXT NOT NULL REFERENCES providers(id),
+      state_code TEXT NOT NULL,
+      license_number TEXT,
+      npn TEXT,
+      lines_of_authority TEXT,
+      license_status TEXT DEFAULT 'active' CHECK(license_status IN ('active','inactive','expired','suspended')),
+      expiration_date TEXT,
+      eo_insurance_expires TEXT,
+      verified INTEGER DEFAULT 0,
+      verified_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS appointment_capacity (
+      id TEXT PRIMARY KEY,
+      provider_id TEXT NOT NULL UNIQUE REFERENCES providers(id),
+      daily_cap INTEGER DEFAULT 10,
+      weekly_cap INTEGER DEFAULT 40,
+      current_daily INTEGER DEFAULT 0,
+      current_weekly INTEGER DEFAULT 0,
+      auto_pause_at_cap INTEGER DEFAULT 1,
+      accepting_appointments INTEGER DEFAULT 1,
+      preferred_types TEXT,
+      min_lead_score INTEGER DEFAULT 60,
+      subscription_tier TEXT DEFAULT 'starter' CHECK(subscription_tier IN ('starter','pro','enterprise')),
+      subscription_started_at TEXT,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS territory_exclusives (
+      id TEXT PRIMARY KEY,
+      provider_id TEXT NOT NULL REFERENCES providers(id),
+      territory_type TEXT NOT NULL CHECK(territory_type IN ('zip','metro','county','state')),
+      territory_value TEXT NOT NULL,
+      insurance_type TEXT,
+      exclusive INTEGER DEFAULT 0,
+      monthly_fee REAL DEFAULT 0,
+      start_date TEXT,
+      end_date TEXT,
+      status TEXT DEFAULT 'active' CHECK(status IN ('active','expired','cancelled')),
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS carrier_partnerships (
+      id TEXT PRIMARY KEY,
+      carrier_name TEXT NOT NULL,
+      carrier_code TEXT UNIQUE NOT NULL,
+      states_active TEXT,
+      insurance_types TEXT,
+      contact_email TEXT,
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS compliance_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      actor_id TEXT,
+      actor_role TEXT,
+      detail TEXT,
+      ip_address TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS qade_referral_credits (
+      id TEXT PRIMARY KEY,
+      referring_provider_id TEXT NOT NULL REFERENCES providers(id),
+      referred_provider_id TEXT REFERENCES providers(id),
+      appointment_id TEXT REFERENCES qade_appointments(id),
+      credit_amount REAL DEFAULT 5,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending','credited','paid','expired')),
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS provider_carrier_appointments (
+      id TEXT PRIMARY KEY,
+      provider_id TEXT NOT NULL REFERENCES providers(id),
+      carrier_id TEXT NOT NULL REFERENCES carrier_partnerships(id),
+      appointment_status TEXT DEFAULT 'pending' CHECK(appointment_status IN ('pending','active','terminated')),
+      appointed_date TEXT,
+      writing_number TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(provider_id, carrier_id)
+    );
   `);
 }

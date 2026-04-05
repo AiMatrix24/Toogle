@@ -103,6 +103,48 @@ export const support = {
   get: (id) => request(`/support/${id}`),
 }
 
+// Module 29: QADE Appointments
+export const qadeAppointments = {
+  submitLead: (data) => request('/appointments/leads', { method: 'POST', body: JSON.stringify(data) }),
+  listLeads: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request(`/appointments/leads${qs ? '?' + qs : ''}`) },
+  getLead: (id) => request(`/appointments/leads/${id}`),
+  match: (id) => request(`/appointments/${id}/match`, { method: 'POST' }),
+  dispatch: (id) => request(`/appointments/${id}/dispatch`, { method: 'POST' }),
+  respond: (id, action) => request(`/appointments/${id}/respond`, { method: 'POST', body: JSON.stringify({ action }) }),
+  offered: () => request('/appointments/offered'),
+  mine: () => request('/appointments/mine'),
+  providerQueue: () => request('/appointments/provider-queue'),
+  get: (id) => request(`/appointments/${id}`),
+  schedule: (id, data) => request(`/appointments/${id}/schedule`, { method: 'POST', body: JSON.stringify(data) }),
+  start: (id) => request(`/appointments/${id}/start`, { method: 'POST' }),
+  complete: (id) => request(`/appointments/${id}/complete`, { method: 'POST' }),
+  noShow: (id) => request(`/appointments/${id}/no-show`, { method: 'POST' }),
+  cancel: (id, reason) => request(`/appointments/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  outcome: (id, data) => request(`/appointments/${id}/outcome`, { method: 'POST', body: JSON.stringify(data) }),
+  survey: (id, data) => request(`/appointments/${id}/survey`, { method: 'POST', body: JSON.stringify(data) }),
+  analyticsSummary: () => request('/appointments/analytics/summary'),
+}
+
+// Provider Config (Module 29)
+export const providerConfig = {
+  licensing: () => request('/provider-config/licensing'),
+  addLicense: (data) => request('/provider-config/licensing', { method: 'POST', body: JSON.stringify(data) }),
+  updateLicense: (id, data) => request(`/provider-config/licensing/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteLicense: (id) => request(`/provider-config/licensing/${id}`, { method: 'DELETE' }),
+  capacity: () => request('/provider-config/capacity'),
+  updateCapacity: (data) => request('/provider-config/capacity', { method: 'PUT', body: JSON.stringify(data) }),
+  territories: () => request('/provider-config/territories'),
+  claimTerritory: (data) => request('/provider-config/territories', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// Compliance (Module 29)
+export const compliance = {
+  auditLog: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request(`/compliance/audit-log${qs ? '?' + qs : ''}`) },
+  consent: (leadId) => request(`/compliance/consent/${leadId}`),
+  dataRequest: (email) => request('/compliance/data-request', { method: 'POST', body: JSON.stringify({ email }) }),
+  dataDelete: (email) => request('/compliance/data-delete', { method: 'POST', body: JSON.stringify({ email }) }),
+}
+
 // Admin
 export const admin = {
   stats: () => request('/admin/stats'),

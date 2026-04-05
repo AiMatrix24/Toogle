@@ -34,6 +34,9 @@ import About from './pages/About'
 import Legal from './pages/Legal'
 import Landing from './pages/Landing'
 import Receipt from './pages/Receipt'
+import LeadIntakeForm from './pages/LeadIntakeForm'
+import AdminLeads from './pages/AdminLeads'
+import ProviderAppointmentQueue from './pages/ProviderAppointmentQueue'
 
 export default function App() {
   const { user, logout, loading: authLoading } = useAuth()
@@ -157,6 +160,9 @@ export default function App() {
           <Route path="/legal" element={<Legal />} />
           <Route path="/landing" element={<Landing />} />
           <Route path="/receipt/:paymentId" element={<Receipt />} />
+          <Route path="/lead-intake" element={<LeadIntakeForm />} />
+          <Route path="/admin/leads" element={<AdminLeads />} />
+          <Route path="/provider/queue" element={<ProviderAppointmentQueue />} />
         </Routes>
       </main>
 
