@@ -311,6 +311,30 @@ export function createTables(db) {
       paid_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS policy_uploads (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id),
+      lead_id TEXT REFERENCES qade_leads(id),
+      file_name TEXT NOT NULL,
+      file_type TEXT,
+      file_size INTEGER,
+      file_path TEXT,
+      insurance_type TEXT CHECK(insurance_type IN ('health','medicare','life','auto','home','commercial','other')),
+      policy_number TEXT,
+      carrier_name TEXT,
+      expiration_date TEXT,
+      current_premium REAL,
+      coverage_summary TEXT,
+      review_status TEXT DEFAULT 'pending' CHECK(review_status IN ('pending','in_review','reviewed','quoted','expired')),
+      reviewer_provider_id TEXT REFERENCES providers(id),
+      reviewer_notes TEXT,
+      quoted_premium REAL,
+      potential_savings REAL,
+      reviewed_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
     -- MODULE 29: Qualified Appointment Distribution Engine (QADE)
 
     CREATE TABLE IF NOT EXISTS qade_leads (

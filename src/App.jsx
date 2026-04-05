@@ -35,6 +35,8 @@ import Legal from './pages/Legal'
 import Landing from './pages/Landing'
 import Receipt from './pages/Receipt'
 import LeadIntakeForm from './pages/LeadIntakeForm'
+import PolicyUpload from './pages/PolicyUpload'
+import PolicyReview from './pages/PolicyReview'
 import AdminLeads from './pages/AdminLeads'
 import ProviderAppointmentQueue from './pages/ProviderAppointmentQueue'
 
@@ -163,6 +165,8 @@ export default function App() {
           <Route path="/lead-intake" element={<LeadIntakeForm />} />
           <Route path="/admin/leads" element={<AdminLeads />} />
           <Route path="/provider/queue" element={<ProviderAppointmentQueue />} />
+          <Route path="/policy-upload" element={<PolicyUpload />} />
+          <Route path="/policy-review" element={<PolicyReview />} />
         </Routes>
       </main>
 

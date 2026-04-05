@@ -103,6 +103,15 @@ export const support = {
   get: (id) => request(`/support/${id}`),
 }
 
+// Policy Upload & Review
+export const policies = {
+  upload: (formData) => fetch('/api/policies/upload', { method: 'POST', credentials: 'include', body: formData }).then(r => r.json()),
+  mine: () => request('/policies/mine'),
+  pending: () => request('/policies/pending'),
+  get: (id) => request(`/policies/${id}`),
+  review: (id, data) => request(`/policies/${id}/review`, { method: 'PATCH', body: JSON.stringify(data) }),
+}
+
 // Module 29: QADE Appointments
 export const qadeAppointments = {
   submitLead: (data) => request('/appointments/leads', { method: 'POST', body: JSON.stringify(data) }),
