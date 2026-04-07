@@ -1,24 +1,30 @@
 const API_BASE = '/api'
 
 async function request(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  })
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      ...options,
+    })
 
-  if (res.status === 401) {
-    // Could redirect to login, but let caller handle
-    const data = await res.json().catch(() => ({ error: 'Unauthorized' }))
-    throw new Error(data.error || 'Unauthorized')
+    if (res.status === 401) {
+      const data = await res.json().catch(() => ({ error: 'Unauthorized' }))
+      throw new Error(data.error || 'Unauthorized')
+    }
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ error: 'Request failed' }))
+      throw new Error(data.error || `Request failed: ${res.status}`)
+    }
+
+    return res.json()
+  } catch (err) {
+    if (err.message === 'Unauthorized') throw err
+    // Network error — API not available (e.g. static Vercel deploy)
+    console.warn(`API unavailable: ${path}`, err.message)
+    throw err
   }
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(data.error || `Request failed: ${res.status}`)
-  }
-
-  return res.json()
 }
 
 // Auth
