@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
-import { Menu, X, Search, LayoutDashboard, MessageSquare, FileText, Calculator, Map, BarChart3, HelpCircle, LogIn, Award, Layers, Tag, Gift, AlertTriangle, DollarSign, Shield } from 'lucide-react'
+import { Menu, X, Search, LayoutDashboard, MessageSquare, FileText, Calculator, Map, BarChart3, HelpCircle, LogIn, Award, Layers, Tag, Gift, AlertTriangle, DollarSign, Shield, ClipboardList, Upload } from 'lucide-react'
 import Notifications from './Notifications'
 import { useAuth } from '../context/AuthContext'
 
@@ -15,6 +15,8 @@ const navLinks = [
   { to: '/quote', label: 'Quote', icon: Calculator },
   { to: '/reviews', label: 'Reviews', icon: Award },
   { to: '/blockchain', label: 'Blockchain', icon: Layers },
+  { to: '/lead-intake', label: 'Get Quote', icon: ClipboardList, badge: 'INS' },
+  { to: '/policy-upload', label: 'Policy Review', icon: Upload },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/support', label: 'Support', icon: HelpCircle },
 ]
